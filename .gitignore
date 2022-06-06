@@ -1,3 +1,4 @@
 *.pyc 
 previous-content.txt
 stash.py
+setup.py

@@ -1,21 +1,36 @@
+from cgitb import text
+from click import echo
 import requests
 import os
 import time
 import logging
 from bs4 import BeautifulSoup
 import stash
-import yagmail
+# novo
+import smtplib
+from email.message import EmailMessage
 
-URL_TO_MONITOR = "https://www.ebay-kleinanzeigen.de/"
-DELAY_TIME = 15
+gmail_password = stash.googlePw
 
-SENDING_EMAIL_USERNAME = "hbtuju"
-SENDING_EMAIL_PASSWORD = stash.stashPw 
-RECIPIENT_EMAIL_ADDRESS = "maja.lovrekovic89@gmail.com"
+def send_email_gmail(subject, message, destination):
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login('hbtuju@gmail.com', gmail_password)
 
-def send_email_alert(alert_str):
-    yagmail.SMTP(SENDING_EMAIL_USERNAME, SENDING_EMAIL_PASSWORD).send(
-        RECIPIENT_EMAIL_ADDRESS, alert_str, alert_str)
+    msg = EmailMessage()
+
+    message = f'{message}\n'
+    msg.set_content(message)
+    msg['Subject'] = subject
+    msg['From'] = 'hbtuju@gmail.com'
+    msg['To'] = destination
+    server.send_message(msg)
+    echo('msg sent')
+
+
+
+URL_TO_MONITOR = "https://www.wbm.de/wohnungen-berlin/angebote/"
+DELAY_TIME = 300
 
 
 def process_html(string):
@@ -32,8 +47,7 @@ def process_html(string):
     return str(soup).replace('\r', '')
 
 def webpage_has_changed():
-    """returns true if changed"""
-    print(stash.stashPw)
+
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36',
     'Pragma': 'no-cache', 'Cache-Control': 'no-cache'}
     response = requests.get(URL_TO_MONITOR, headers=headers)
@@ -56,16 +70,16 @@ def webpage_has_changed():
 def main():
     log = logging.getLogger(__name__)
     logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"), format='%(asctime)s %(message)s')
-    log.info("Running Website Monitor")
     while True:
         try:
             if webpage_has_changed():
                 log.info("WEBPAGE WAS CHANGED.")
-
+                send_email_gmail('WBM', 'WBM Stranica = novi oglasi', 'maja.lovrekovic89@gmail.com')
             else:
                 log.info("Webpage was not changed.")
         except:
             log.info("Error checking website.")
+
         time.sleep(DELAY_TIME)
 
 
